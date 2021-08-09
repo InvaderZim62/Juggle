@@ -12,17 +12,44 @@ import UIKit
 import QuartzCore
 import SceneKit
 
+struct Constants {
+    static let ballRadius: CGFloat = 1
+}
+
 class GameViewController: UIViewController {
 
     var scnView: SCNView!
     var scnScene: SCNScene!
     var cameraNode: SCNNode!
+    
+    var ballNode: SCNNode!
+    var handNode: SCNNode!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
         setupScene()
         setupCamera()
+        addHandNode()
+        addBallNode()
+    }
+    
+    private func addHandNode() {
+        let hand = SCNBox(width: 1, height: 0.3, length: 1, chamferRadius: 0)
+        hand.firstMaterial?.diffuse.contents = UIColor.white
+        let handNode = SCNNode(geometry: hand)
+        handNode.position = SCNVector3(x: 0, y: -6, z: 0)
+        handNode.physicsBody = SCNPhysicsBody(type: .kinematic, shape: nil)
+        scnScene.rootNode.addChildNode(handNode)
+    }
+
+    private func addBallNode() {
+        let ball = SCNSphere(radius: Constants.ballRadius)
+        ball.firstMaterial?.diffuse.contents = UIColor.red
+        let ballNode = SCNNode(geometry: ball)
+        ballNode.position = SCNVector3(x: 0, y: 10, z: 0)
+        ballNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        scnScene.rootNode.addChildNode(ballNode)
     }
 
     // MARK: - Setup
@@ -45,6 +72,7 @@ class GameViewController: UIViewController {
     private func setupCamera() {
         cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
+        cameraNode.position = SCNVector3(x: 0, y: 0, z: 30)
         scnScene.rootNode.addChildNode(cameraNode)
     }
 }
