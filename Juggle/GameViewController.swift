@@ -29,7 +29,14 @@ class GameViewController: UIViewController {
     var moveHandStartTime: TimeInterval = 0
     var isHandMoving = false
     var isBallInHand = false
-    var isBallInHandPast = false
+    
+    let ballNodePhysicsBody: SCNPhysicsBody = {  // set property with a closure
+        let physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        physicsBody.restitution = 0  // no bounce
+        physicsBody.categoryBitMask = ContactCategory.ball
+        physicsBody.contactTestBitMask = ContactCategory.hand
+        return physicsBody
+    }()
 
     struct ContactCategory {  // bit masks for contact detection
         static let hand = 1 << 0
@@ -60,7 +67,7 @@ class GameViewController: UIViewController {
         let ball = SCNSphere(radius: Constants.ballRadius)
         ball.firstMaterial?.diffuse.contents = UIColor.red
         ballNode = SCNNode(geometry: ball)
-        ballNode.position = SCNVector3(x: 0, y: 10, z: 0)
+        ballNode.position = SCNVector3(x: 0, y: Constants.handInitialYPosition + Float(Constants.ballRadius), z: 0)
         ballNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         ballNode.physicsBody?.restitution = 0  // no bounciness
         ballNode.physicsBody?.categoryBitMask = ContactCategory.ball
@@ -68,18 +75,17 @@ class GameViewController: UIViewController {
         scnScene.rootNode.addChildNode(ballNode)
     }
     
-    var frequency = 4.0
-    let amplitude = 4.0
-    
-    private func moveHand(deltaTime: Double) {
-        if deltaTime < 2 * Double.pi / frequency {  // full sine wave
-            let deltaPosition = Float(amplitude * sin(-frequency * deltaTime))
+    private func moveHand(deltaTime: Double) {  // pws: consider setting frequency based on velocity of ball when first contacting hand
+        let handFrequency = 4.0
+        let handAmplitude = 4.0
+        if deltaTime < 2 * Double.pi / handFrequency {  // full sine wave
+            let deltaPosition = Float(handAmplitude * sin(-handFrequency * deltaTime))
             handNode.position.y = Constants.handInitialYPosition + deltaPosition
         } else {
             isHandMoving = false
             handNode.position.y = Constants.handInitialYPosition
         }
-        if deltaTime > 0.5 * Double.pi / frequency {  // 1/4 sine wave
+        if deltaTime > 1.0 * Double.pi / handFrequency {  // 1/2 sine wave
             isBallInHand = false
         }
     }
@@ -118,18 +124,11 @@ extension GameViewController: SCNSceneRendererDelegate {
         } else {
             moveHand(deltaTime: time - moveHandStartTime)
         }
-        
+        // if ball is in hand, turn off physics body and move with hand
+        ballNode.physicsBody = isBallInHand ? nil : ballNodePhysicsBody
         if isBallInHand {
-            ballNode.physicsBody = nil
             ballNode.position.y = handNode.position.y + Float(Constants.ballRadius)
-        } else if isBallInHandPast {
-            // only do this once per ball release
-            ballNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-            ballNode.physicsBody?.restitution = 0  // no bounce
-            ballNode.physicsBody?.categoryBitMask = ContactCategory.ball
-            ballNode.physicsBody?.contactTestBitMask = ContactCategory.hand
         }
-        isBallInHandPast = isBallInHand
     }
 }
 
