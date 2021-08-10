@@ -14,6 +14,7 @@ import SceneKit
 
 struct Constants {
     static let ballRadius: CGFloat = 1
+    static let ballPositionRelativeToHand = SCNVector3(x: 0, y: Float(Constants.ballRadius), z: 0)
     static let handInitialYPosition: Float = -6
 }
 
@@ -67,7 +68,7 @@ class GameViewController: UIViewController {
         let ball = SCNSphere(radius: Constants.ballRadius)
         ball.firstMaterial?.diffuse.contents = UIColor.red
         ballNode = SCNNode(geometry: ball)
-        ballNode.position = SCNVector3(x: 0, y: Constants.handInitialYPosition + Float(Constants.ballRadius), z: 0)
+        ballNode.position = handNode.position + Constants.ballPositionRelativeToHand
         ballNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         ballNode.physicsBody?.restitution = 0  // no bounciness
         ballNode.physicsBody?.categoryBitMask = ContactCategory.ball
@@ -127,7 +128,7 @@ extension GameViewController: SCNSceneRendererDelegate {
         // if ball is in hand, turn off physics body and move with hand
         ballNode.physicsBody = isBallInHand ? nil : ballNodePhysicsBody
         if isBallInHand {
-            ballNode.position.y = handNode.position.y + Float(Constants.ballRadius)
+            ballNode.position = handNode.position + Constants.ballPositionRelativeToHand
         }
     }
 }
