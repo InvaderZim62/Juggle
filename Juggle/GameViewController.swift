@@ -15,12 +15,14 @@ import SceneKit
 struct Constants {
     static let ballRadius: CGFloat = 1
     static let ballPositionRelativeToHand = SCNVector3(x: 0, y: Float(Constants.ballRadius), z: 0)
+    static let majorAxis = 3.0
+    static let minorAxis = 1.0
     static let leftHandRotationCenter = SCNVector3(x: -2.4, y: -6, z: 0)
-    static let leftHandRotationTilt = -120.rads  // zero along x-axis, positive ccw
-    static let leftHandInitialTheta = -90.rads  // zero along major-axis, positive ccw
+    static let leftHandRotationTilt = 60.rads  // rotation of ellipse, zero along screen x-axis, positive ccw
+    static let leftHandInitialTheta = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
     static let rightHandRotationCenter = SCNVector3(x: 2.4, y: -6, z: 0)
-    static let rightHandRotationTilt = -60.rads  // zero along x-axis, positive ccw
-    static let rightHandInitialTheta = 90.rads  // zero along major-axis, positive ccw
+    static let rightHandRotationTilt = -60.rads
+    static let rightHandInitialTheta = 90.rads
 }
 
 struct ContactCategory {  // bit masks for contact detection
@@ -76,28 +78,27 @@ class GameViewController: UIViewController {
     }
     
     private func moveHandNode(_ handNode: HandNode, deltaTime: Double) {
-        let rotationRate = handNode.isLeft ? 300.rads : -300.rads  // radians/second
-        let deltaTheta = deltaTime * rotationRate  // rads, angle of hand about center, zero along major-axis, positive ccw
+        let rotationRate = handNode.isLeft ? 300.rads : -300.rads
         let initialTheta = handNode.isLeft ? Constants.leftHandInitialTheta : Constants.rightHandInitialTheta
-        let theta = initialTheta + deltaTheta  // start along minor-axis
         let rotationCenter = handNode.isLeft ? Constants.leftHandRotationCenter : Constants.rightHandRotationCenter
         let rotationTilt = handNode.isLeft ? Constants.leftHandRotationTilt : Constants.rightHandRotationTilt
-        if abs(deltaTheta) < 360.rads {  // full loop
+
+        let deltaTheta = deltaTime * rotationRate  // rads, angle of hand about center of ellipse, zero along major-axis, positive ccw
+        let theta = initialTheta + deltaTheta  // start hand along minor-axis
+        if abs(deltaTheta) < 360.rads {  // move hand around complete loop
             handNode.position = rotationCenter + ellipticalPosition(theta: theta, tilt: rotationTilt)
         } else {
             handNode.isMoving = false
-            handNode.position = rotationCenter + ellipticalPosition(theta: initialTheta, tilt: rotationTilt)
+            handNode.position = rotationCenter + ellipticalPosition(theta: initialTheta, tilt: rotationTilt)  // return to start (should already be there)
         }
-        if abs(deltaTheta) > 180.rads {  // 1/2 loop (to negative minor axis)
+        if abs(deltaTheta) > 180.rads {  // release ball at negative minor axis
             ballNode.location = .inAir
         }
     }
     
     private func ellipticalPosition(theta: Double, tilt: Double) -> SCNVector3 {
-        let majorAxis = 3.0
-        let minorAxis = 1.0
-        let x = majorAxis * cos(theta) * cos(tilt) - minorAxis * sin(theta) * sin(tilt)
-        let y = majorAxis * cos(theta) * sin(tilt) + minorAxis * sin(theta) * cos(tilt)
+        let x = Constants.majorAxis * cos(theta) * cos(tilt) - Constants.minorAxis * sin(theta) * sin(tilt)
+        let y = Constants.majorAxis * cos(theta) * sin(tilt) + Constants.minorAxis * sin(theta) * cos(tilt)
         return SCNVector3(x: Float(x), y: Float(y), z: 0)
     }
 
