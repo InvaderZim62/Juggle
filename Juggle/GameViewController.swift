@@ -45,6 +45,8 @@ class GameViewController: UIViewController {
         physicsBody.contactTestBitMask = ContactCategory.hand
         return physicsBody
     }()
+    
+    // MARK: - Start of Code
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -126,17 +128,19 @@ class GameViewController: UIViewController {
     }
 }
 
+// MARK: - Extensions
+
 extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        if !leftHandNode.isMoving {
-            leftHandNode.moveStartTime = time  // keep updating until hand moving
-        } else {
+        if leftHandNode.isMoving {
             moveHandNode(leftHandNode, deltaTime: time - leftHandNode.moveStartTime)
-        }
-        if !rightHandNode.isMoving {
-            rightHandNode.moveStartTime = time  // keep updating until hand moving
         } else {
+            leftHandNode.moveStartTime = time  // keep updating until hand starts moving
+        }
+        if rightHandNode.isMoving {
             moveHandNode(rightHandNode, deltaTime: time - rightHandNode.moveStartTime)
+        } else {
+            rightHandNode.moveStartTime = time  // keep updating until hand starts moving
         }
         // if ball is in hand, turn off physics body and move with hand
         switch ballNode.location {
