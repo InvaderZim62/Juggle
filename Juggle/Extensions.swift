@@ -7,6 +7,12 @@
 
 import SceneKit
 
+extension Int {
+    var isEven: Bool {
+        return self % 2 == 0
+    }
+}
+
 extension Double {
     var rads: Double {
         return self * .pi / 180

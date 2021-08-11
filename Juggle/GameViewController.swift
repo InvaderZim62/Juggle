@@ -13,7 +13,8 @@ import QuartzCore
 import SceneKit
 
 struct Balls {
-    static let spawnTimeInterval = 2.2
+    static let count = 3
+    static let spawnTimeInterval = 1.1
     static let radius: CGFloat = 0.8
     static let positionRelativeToHand = SCNVector3(x: 0, y: Float(radius), z: 0)
 }
@@ -74,7 +75,7 @@ class GameViewController: UIViewController {
 
     private func addBallNode() {
         let ballNode = BallNode()
-        ballNode.position = rightHandNode.position + Balls.positionRelativeToHand
+        ballNode.position = ballNodes.count.isEven ? rightHandNode.position : leftHandNode.position + Balls.positionRelativeToHand
         ballNodes.append(ballNode)
         scnScene.rootNode.addChildNode(ballNode)
     }
@@ -158,7 +159,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
 
 extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        if time > ballSpawnTime && ballNodes.count < 3 {
+        if time > ballSpawnTime && ballNodes.count < Balls.count {
             addBallNode()
             ballSpawnTime = time + TimeInterval(Balls.spawnTimeInterval)
         }
