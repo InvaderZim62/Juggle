@@ -15,9 +15,17 @@ import SceneKit
 struct Constants {
     static let ballRadius: CGFloat = 1
     static let ballPositionRelativeToHand = SCNVector3(x: 0, y: Float(Constants.ballRadius), z: 0)
-    static let handRotationCenter = SCNVector3(x: 2, y: -6, z: 0)
-    static let handRotationTilt = -60.rads  // zero along x-axis, positive ccw
-    static let initialHandTheta = 90.rads  // zero along major-axis, positive ccw
+    static let leftHandRotationCenter = SCNVector3(x: -2.4, y: -6, z: 0)
+    static let leftHandRotationTilt = -120.rads  // zero along x-axis, positive ccw
+    static let leftHandInitialTheta = -90.rads  // zero along major-axis, positive ccw
+    static let rightHandRotationCenter = SCNVector3(x: 2.4, y: -6, z: 0)
+    static let rightHandRotationTilt = -60.rads  // zero along x-axis, positive ccw
+    static let rightHandInitialTheta = 90.rads  // zero along major-axis, positive ccw
+}
+
+struct ContactCategory {  // bit masks for contact detection
+    static let hand = 1 << 0
+    static let ball = 1 << 1
 }
 
 class GameViewController: UIViewController {
@@ -26,12 +34,9 @@ class GameViewController: UIViewController {
     var scnScene: SCNScene!
     var cameraNode: SCNNode!
     
-    var ballNode: SCNNode!
-    var handNode: SCNNode!
-    
-    var moveHandStartTime: TimeInterval = 0
-    var isHandMoving = false
-    var isBallInHand = false
+    var ballNode: BallNode!
+    var leftHandNode: HandNode!
+    var rightHandNode: HandNode!
     
     let ballNodePhysicsBody: SCNPhysicsBody = {  // set property with a closure
         let physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
@@ -41,57 +46,49 @@ class GameViewController: UIViewController {
         return physicsBody
     }()
 
-    struct ContactCategory {  // bit masks for contact detection
-        static let hand = 1 << 0
-        static let ball = 1 << 1
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
         setupScene()
         setupCamera()
-        addHandNode()
+        addHandNodes()
         addBallNode()
     }
     
-    private func addHandNode() {
-        let hand = SCNBox(width: 1, height: 0.3, length: 1, chamferRadius: 0)
-        hand.firstMaterial?.diffuse.contents = UIColor.white
-        handNode = SCNNode(geometry: hand)
-        handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: Constants.initialHandTheta, tilt: Constants.handRotationTilt)
-        handNode.physicsBody = SCNPhysicsBody(type: .kinematic, shape: nil)
-        handNode.physicsBody?.categoryBitMask = ContactCategory.hand
-        handNode.physicsBody?.contactTestBitMask = ContactCategory.ball
-        scnScene.rootNode.addChildNode(handNode)
+    private func addHandNodes() {
+        leftHandNode = HandNode(isLeft: true)
+        leftHandNode.position = Constants.leftHandRotationCenter +
+            ellipticalPosition(theta: Constants.leftHandInitialTheta, tilt: Constants.leftHandRotationTilt)
+        scnScene.rootNode.addChildNode(leftHandNode)
+        
+        rightHandNode = HandNode(isLeft: false)
+        rightHandNode.position = Constants.rightHandRotationCenter +
+            ellipticalPosition(theta: Constants.rightHandInitialTheta, tilt: Constants.rightHandRotationTilt)
+        scnScene.rootNode.addChildNode(rightHandNode)
     }
 
     private func addBallNode() {
-        let ball = SCNSphere(radius: Constants.ballRadius)
-        ball.firstMaterial?.diffuse.contents = UIColor.red
-        ballNode = SCNNode(geometry: ball)
-        ballNode.position = handNode.position + Constants.ballPositionRelativeToHand
-        ballNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        ballNode.physicsBody?.restitution = 0  // no bounciness
-        ballNode.physicsBody?.categoryBitMask = ContactCategory.ball
-        ballNode.physicsBody?.contactTestBitMask = ContactCategory.hand
+        ballNode = BallNode()
+        ballNode.position = rightHandNode.position + Constants.ballPositionRelativeToHand
         scnScene.rootNode.addChildNode(ballNode)
     }
     
-    private func moveHand(deltaTime: Double) {
-        let rotationRate = -300.rads  // rads/sec
+    private func moveHandNode(_ handNode: HandNode, deltaTime: Double) {
+        let rotationRate = handNode.isLeft ? 300.rads : -300.rads  // radians/second
         let deltaTheta = deltaTime * rotationRate  // rads, angle of hand about center, zero along major-axis, positive ccw
-        let theta = Constants.initialHandTheta + deltaTheta  // start along minor-axis
+        let initialTheta = handNode.isLeft ? Constants.leftHandInitialTheta : Constants.rightHandInitialTheta
+        let theta = initialTheta + deltaTheta  // start along minor-axis
+        let rotationCenter = handNode.isLeft ? Constants.leftHandRotationCenter : Constants.rightHandRotationCenter
+        let rotationTilt = handNode.isLeft ? Constants.leftHandRotationTilt : Constants.rightHandRotationTilt
         if abs(deltaTheta) < 360.rads {  // full loop
-            handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: theta, tilt: Constants.handRotationTilt)
+            handNode.position = rotationCenter + ellipticalPosition(theta: theta, tilt: rotationTilt)
         } else {
-            isHandMoving = false
-            handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: Constants.initialHandTheta, tilt: Constants.handRotationTilt)
+            handNode.isMoving = false
+            handNode.position = rotationCenter + ellipticalPosition(theta: initialTheta, tilt: rotationTilt)
         }
-        if abs(deltaTheta) > 180.rads {  // 1/2 loop (negative minor axis)
-            isBallInHand = false
+        if abs(deltaTheta) > 180.rads {  // 1/2 loop (to negative minor axis)
+            ballNode.location = .inAir
         }
-        print(deltaTime, deltaTheta.degs, theta.degs, isBallInHand)
     }
     
     private func ellipticalPosition(theta: Double, tilt: Double) -> SCNVector3 {
@@ -131,15 +128,26 @@ class GameViewController: UIViewController {
 
 extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        if !isHandMoving {
-            moveHandStartTime = time  // keep updating until hand moving
+        if !leftHandNode.isMoving {
+            leftHandNode.moveStartTime = time  // keep updating until hand moving
         } else {
-            moveHand(deltaTime: time - moveHandStartTime)
+            moveHandNode(leftHandNode, deltaTime: time - leftHandNode.moveStartTime)
+        }
+        if !rightHandNode.isMoving {
+            rightHandNode.moveStartTime = time  // keep updating until hand moving
+        } else {
+            moveHandNode(rightHandNode, deltaTime: time - rightHandNode.moveStartTime)
         }
         // if ball is in hand, turn off physics body and move with hand
-        ballNode.physicsBody = isBallInHand ? nil : ballNodePhysicsBody
-        if isBallInHand {
-            ballNode.position = handNode.position + Constants.ballPositionRelativeToHand
+        switch ballNode.location {
+        case .leftHand:
+            ballNode.physicsBody = nil
+            ballNode.position = leftHandNode.position + Constants.ballPositionRelativeToHand
+        case .rightHand:
+            ballNode.physicsBody = nil
+            ballNode.position = rightHandNode.position + Constants.ballPositionRelativeToHand
+        case .inAir:
+            ballNode.physicsBody = ballNodePhysicsBody
         }
     }
 }
@@ -150,9 +158,13 @@ extension GameViewController: SCNPhysicsContactDelegate {
         let contactMask = contact.nodeA.physicsBody!.categoryBitMask | contact.nodeB.physicsBody!.categoryBitMask
         switch contactMask {
         case ContactCategory.hand | ContactCategory.ball:
-            print(".", terminator: "")
-            isHandMoving = true
-            isBallInHand = true
+            if let handNode = contact.nodeA as? HandNode, let ballNode = contact.nodeB as? BallNode {
+                handNode.isMoving = true
+                ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+            } else if let handNode = contact.nodeB as? HandNode, let ballNode = contact.nodeA as? BallNode {
+                handNode.isMoving = true
+                ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+            }
         default:
             break
         }
