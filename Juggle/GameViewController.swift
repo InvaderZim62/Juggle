@@ -12,17 +12,23 @@ import UIKit
 import QuartzCore
 import SceneKit
 
-struct Constants {
-    static let ballRadius: CGFloat = 1
-    static let ballPositionRelativeToHand = SCNVector3(x: 0, y: Float(Constants.ballRadius), z: 0)
+struct Ball {
+    static let radius: CGFloat = 1
+    static let positionRelativeToHand = SCNVector3(x: 0, y: Float(radius), z: 0)
+}
+
+struct Hands {
+    static let distanceBetween: Float = 4.4
+    static let rotationCenterVerticalOffset: Float = -6.0  // from screen center
+    static let rotationRate = 300.rads  // rotation rate around center of ellipse
+    static let initialAngle = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
+    static let ballReleaseAngle = 200.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
+}
+
+struct Ellipse {  // for hand motion
     static let majorAxis = 3.0
     static let minorAxis = 1.0
-    static let leftHandRotationCenter = SCNVector3(x: -2.4, y: -6, z: 0)
-    static let leftHandRotationTilt = 60.rads  // rotation of ellipse, zero along screen x-axis, positive ccw
-    static let leftHandInitialTheta = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
-    static let rightHandRotationCenter = SCNVector3(x: 2.4, y: -6, z: 0)
-    static let rightHandRotationTilt = -60.rads
-    static let rightHandInitialTheta = 90.rads
+    static let tilt = 60.rads  // zero along screen x-axis, positive ccw
 }
 
 struct ContactCategory {  // bit masks for contact detection
@@ -39,7 +45,9 @@ class GameViewController: UIViewController {
     var ballNode: BallNode!
     var leftHandNode: HandNode!
     var rightHandNode: HandNode!
-    
+    var leftHandRotationCenter = SCNVector3()
+    var rightHandRotationCenter = SCNVector3()
+
     let ballNodePhysicsBody: SCNPhysicsBody = {  // set property with a closure
         let physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         physicsBody.restitution = 0  // no bounce
@@ -60,45 +68,49 @@ class GameViewController: UIViewController {
     }
     
     private func addHandNodes() {
+        leftHandRotationCenter = SCNVector3(x: -Hands.distanceBetween / 2, y: Hands.rotationCenterVerticalOffset, z: 0)
         leftHandNode = HandNode(isLeft: true)
-        leftHandNode.position = Constants.leftHandRotationCenter +
-            ellipticalPosition(theta: Constants.leftHandInitialTheta, tilt: Constants.leftHandRotationTilt)
+        leftHandNode.position = leftHandRotationCenter +
+            ellipticalPosition(angle: Hands.initialAngle, tilt: Ellipse.tilt)
         scnScene.rootNode.addChildNode(leftHandNode)
         
+        rightHandRotationCenter = SCNVector3(x: Hands.distanceBetween / 2, y: Hands.rotationCenterVerticalOffset, z: 0)
         rightHandNode = HandNode(isLeft: false)
-        rightHandNode.position = Constants.rightHandRotationCenter +
-            ellipticalPosition(theta: Constants.rightHandInitialTheta, tilt: Constants.rightHandRotationTilt)
+        rightHandNode.position = rightHandRotationCenter +
+            ellipticalPosition(angle: Hands.initialAngle, tilt: -Ellipse.tilt)
         scnScene.rootNode.addChildNode(rightHandNode)
     }
 
     private func addBallNode() {
         ballNode = BallNode()
-        ballNode.position = rightHandNode.position + Constants.ballPositionRelativeToHand
+        ballNode.position = rightHandNode.position + Ball.positionRelativeToHand
         scnScene.rootNode.addChildNode(ballNode)
     }
     
     private func moveHandNode(_ handNode: HandNode, deltaTime: Double) {
-        let rotationRate = handNode.isLeft ? 300.rads : -300.rads
-        let initialTheta = handNode.isLeft ? Constants.leftHandInitialTheta : Constants.rightHandInitialTheta
-        let rotationCenter = handNode.isLeft ? Constants.leftHandRotationCenter : Constants.rightHandRotationCenter
-        let rotationTilt = handNode.isLeft ? Constants.leftHandRotationTilt : Constants.rightHandRotationTilt
+        let rotationRate = handNode.isLeft ? Hands.rotationRate : -Hands.rotationRate  // left hand ccw, right hand cw
+        let rotationCenter = handNode.isLeft ? leftHandRotationCenter : rightHandRotationCenter
+        let ellipseTilt = handNode.isLeft ? Ellipse.tilt : -Ellipse.tilt
 
-        let deltaTheta = deltaTime * rotationRate  // rads, angle of hand about center of ellipse, zero along major-axis, positive ccw
-        let theta = initialTheta + deltaTheta  // start hand along minor-axis
-        if abs(deltaTheta) < 360.rads {  // move hand around complete loop
-            handNode.position = rotationCenter + ellipticalPosition(theta: theta, tilt: rotationTilt)
+        let deltaAngle = deltaTime * rotationRate  // radians
+        let angle = Hands.initialAngle + deltaAngle  // start hand along ellipse minor-axis
+        if abs(deltaAngle) < 360.rads {  // move hand around complete loop
+            handNode.position = rotationCenter + ellipticalPosition(angle: angle, tilt: ellipseTilt)
         } else {
             handNode.isMoving = false
-            handNode.position = rotationCenter + ellipticalPosition(theta: initialTheta, tilt: rotationTilt)  // return to start (should already be there)
+            handNode.position = rotationCenter + ellipticalPosition(angle: Hands.initialAngle, tilt: ellipseTilt)  // return to start (should be there)
         }
-        if abs(deltaTheta) > 180.rads {  // release ball at negative minor axis
+        if abs(deltaAngle) > Hands.ballReleaseAngle {  // release ball just past negative minor axis
             ballNode.location = .inAir
         }
     }
     
-    private func ellipticalPosition(theta: Double, tilt: Double) -> SCNVector3 {
-        let x = Constants.majorAxis * cos(theta) * cos(tilt) - Constants.minorAxis * sin(theta) * sin(tilt)
-        let y = Constants.majorAxis * cos(theta) * sin(tilt) + Constants.minorAxis * sin(theta) * cos(tilt)
+    // return position relative to center of ellipse
+    // angle is about ellipse center (ccw from major-axis)
+    // tilt is rotation of ellipse major-axis (ccw from screen x-axis)
+    private func ellipticalPosition(angle: Double, tilt: Double) -> SCNVector3 {
+        let x = Ellipse.majorAxis * cos(angle) * cos(tilt) - Ellipse.minorAxis * sin(angle) * sin(tilt)
+        let y = Ellipse.majorAxis * cos(angle) * sin(tilt) + Ellipse.minorAxis * sin(angle) * cos(tilt)
         return SCNVector3(x: Float(x), y: Float(y), z: 0)
     }
 
@@ -147,10 +159,10 @@ extension GameViewController: SCNSceneRendererDelegate {
         switch ballNode.location {
         case .leftHand:
             ballNode.physicsBody = nil
-            ballNode.position = leftHandNode.position + Constants.ballPositionRelativeToHand
+            ballNode.position = leftHandNode.position + Ball.positionRelativeToHand
         case .rightHand:
             ballNode.physicsBody = nil
-            ballNode.position = rightHandNode.position + Constants.ballPositionRelativeToHand
+            ballNode.position = rightHandNode.position + Ball.positionRelativeToHand
         case .inAir:
             ballNode.physicsBody = ballNodePhysicsBody
         }
