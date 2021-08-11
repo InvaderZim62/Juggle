@@ -14,7 +14,7 @@ import SceneKit
 
 struct Balls {
     static let spawnTimeInterval = 2.2
-    static let radius: CGFloat = 1
+    static let radius: CGFloat = 0.8
     static let positionRelativeToHand = SCNVector3(x: 0, y: Float(radius), z: 0)
 }
 
