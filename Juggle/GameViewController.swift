@@ -19,11 +19,11 @@ struct Balls {
 }
 
 struct Hands {
-    static let distanceBetween: Float = 4.4
+    static let distanceBetween: Float = 5.4
     static let rotationCenterVerticalOffset: Float = -6.0  // from screen center
     static let rotationRate = 300.rads  // rotation rate around center of ellipse
     static let initialAngle = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
-    static let ballReleaseAngle = 200.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
+    static let ballReleaseAngle = 220.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
 }
 
 struct Ellipse {  // for hand motion
@@ -49,14 +49,6 @@ class GameViewController: UIViewController {
     var leftHandRotationCenter = SCNVector3()
     var rightHandRotationCenter = SCNVector3()
     var ballSpawnTime: TimeInterval = 0
-
-    var ballNodePhysicsBody: SCNPhysicsBody {
-        let physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-        physicsBody.restitution = 0  // no bounce
-        physicsBody.categoryBitMask = ContactCategory.ball
-        physicsBody.contactTestBitMask = ContactCategory.hand
-        return physicsBody
-    }
     
     // MARK: - Start of Code
 
@@ -180,19 +172,15 @@ extension GameViewController: SCNSceneRendererDelegate {
         } else {
             rightHandNode.moveStartTime = time  // keep updating until hand starts moving
         }
-        // if ball is in hand, turn off physics body and move with hand
+        // if ball is in hand, move with hand
         for ballNode in ballNodes {
             switch ballNode.location {
             case .leftHand:
-                ballNode.physicsBody = nil
                 ballNode.position = leftHandNode.position + Balls.positionRelativeToHand
             case .rightHand:
-                ballNode.physicsBody = nil
                 ballNode.position = rightHandNode.position + Balls.positionRelativeToHand
-            case .inAir:
-                if ballNode.physicsBody == nil {
-                    ballNode.physicsBody = ballNodePhysicsBody  // get a new one each time
-                }
+            default:
+                break
             }
         }
     }
