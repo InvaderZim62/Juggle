@@ -15,7 +15,9 @@ import SceneKit
 struct Constants {
     static let ballRadius: CGFloat = 1
     static let ballPositionRelativeToHand = SCNVector3(x: 0, y: Float(Constants.ballRadius), z: 0)
-    static let handInitialYPosition: Float = -6
+    static let handRotationCenter = SCNVector3(x: 2, y: -6, z: 0)
+    static let handRotationTilt = -60.rads  // zero along x-axis, positive ccw
+    static let initialHandTheta = 90.rads  // zero along major-axis, positive ccw
 }
 
 class GameViewController: UIViewController {
@@ -57,7 +59,7 @@ class GameViewController: UIViewController {
         let hand = SCNBox(width: 1, height: 0.3, length: 1, chamferRadius: 0)
         hand.firstMaterial?.diffuse.contents = UIColor.white
         handNode = SCNNode(geometry: hand)
-        handNode.position = SCNVector3(x: 0, y: Constants.handInitialYPosition, z: 0)
+        handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: Constants.initialHandTheta, tilt: Constants.handRotationTilt)
         handNode.physicsBody = SCNPhysicsBody(type: .kinematic, shape: nil)
         handNode.physicsBody?.categoryBitMask = ContactCategory.hand
         handNode.physicsBody?.contactTestBitMask = ContactCategory.ball
@@ -76,19 +78,28 @@ class GameViewController: UIViewController {
         scnScene.rootNode.addChildNode(ballNode)
     }
     
-    private func moveHand(deltaTime: Double) {  // pws: consider setting frequency based on velocity of ball when first contacting hand
-        let handFrequency = 4.0
-        let handAmplitude = 4.0
-        if deltaTime < 2 * Double.pi / handFrequency {  // full sine wave
-            let deltaPosition = Float(handAmplitude * sin(-handFrequency * deltaTime))
-            handNode.position.y = Constants.handInitialYPosition + deltaPosition
+    private func moveHand(deltaTime: Double) {
+        let rotationRate = -300.rads  // rads/sec
+        let deltaTheta = deltaTime * rotationRate  // rads, angle of hand about center, zero along major-axis, positive ccw
+        let theta = Constants.initialHandTheta + deltaTheta  // start along minor-axis
+        if abs(deltaTheta) < 360.rads {  // full loop
+            handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: theta, tilt: Constants.handRotationTilt)
         } else {
             isHandMoving = false
-            handNode.position.y = Constants.handInitialYPosition
+            handNode.position = Constants.handRotationCenter + ellipticalPosition(theta: Constants.initialHandTheta, tilt: Constants.handRotationTilt)
         }
-        if deltaTime > 1.0 * Double.pi / handFrequency {  // 1/2 sine wave
+        if abs(deltaTheta) > 180.rads {  // 1/2 loop (negative minor axis)
             isBallInHand = false
         }
+        print(deltaTime, deltaTheta.degs, theta.degs, isBallInHand)
+    }
+    
+    private func ellipticalPosition(theta: Double, tilt: Double) -> SCNVector3 {
+        let majorAxis = 3.0
+        let minorAxis = 1.0
+        let x = majorAxis * cos(theta) * cos(tilt) - minorAxis * sin(theta) * sin(tilt)
+        let y = majorAxis * cos(theta) * sin(tilt) + minorAxis * sin(theta) * cos(tilt)
+        return SCNVector3(x: Float(x), y: Float(y), z: 0)
     }
 
     // MARK: - Setup

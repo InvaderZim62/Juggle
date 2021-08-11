@@ -7,6 +7,16 @@
 
 import SceneKit
 
+extension Double {
+    var rads: Double {
+        return self * .pi / 180
+    }
+    
+    var degs: Double {
+        return self * 180 / .pi
+    }
+}
+
 extension SCNVector3 {
     static func +(lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
         return SCNVector3(x: lhs.x + rhs.x, y: lhs.y + rhs.y, z: lhs.z + rhs.z)
