@@ -12,6 +12,7 @@ class HandNode: SCNNode {
     
     var isLeft = false
     var isMoving = false
+    var ballNode: BallNode!  // if ball in hand
     var moveStartTime: TimeInterval = 0
     
     required init?(coder: NSCoder) {
