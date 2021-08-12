@@ -24,7 +24,7 @@ class BallNode: SCNNode {
 
     override init() {
         super.init()
-        let ball = SCNSphere(radius: Balls.radius)
+        let ball = SCNSphere(radius: Ball.radius)
         ball.firstMaterial?.diffuse.contents = UIColor.red
         geometry = ball
         physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
