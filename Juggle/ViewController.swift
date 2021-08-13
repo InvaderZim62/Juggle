@@ -14,11 +14,11 @@ class ViewController: UIViewController {
             switch segue.identifier {
             case "3 Ball Cascade":
                 gvc.ballCount = 3
-                gvc.ballReleaseInterval = 1.1  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
-                gvc.ballReleaseAngle = 220.rads
+                gvc.ballReleaseInterval = 1.1  // seconds between releasing the initial balls (alternating right-left hands)
+                gvc.ballReleaseAngle = 220.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
                 gvc.ellipseMajorAxis = 3.0
                 gvc.ellipseMinorAxis = 1.0
-                gvc.ellipseTilt = 60.rads  // zero along screen x-axis, positive ccw
+                gvc.ellipseTilt = 60.rads  // rotation of ellipse major axis from screen x-axis, positive ccw
             case "5 Ball Cascade":
                 gvc.ballCount = 5
                 gvc.ballReleaseInterval = 0.68

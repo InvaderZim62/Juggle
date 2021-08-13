@@ -31,11 +31,11 @@ struct ContactCategory {  // bit masks for contact detection
 class GameViewController: UIViewController {
     
     var ballCount = 3
-    var ballReleaseInterval = 1.1
+    var ballReleaseInterval = 1.1  // seconds between releasing the initial balls (alternating right-left hands)
     var ballReleaseAngle = 220.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
     var ellipseMajorAxis = 3.0
     var ellipseMinorAxis = 1.0
-    var ellipseTilt = 60.rads  // zero along screen x-axis, positive ccw
+    var ellipseTilt = 60.rads  // rotation of ellipse major axis from screen x-axis, positive ccw
     
     private var scnView: SCNView!
     private var scnScene: SCNScene!
