@@ -47,7 +47,8 @@ class GameViewController: UIViewController {
     private var leftHandRotationCenter = SCNVector3()
     private var rightHandRotationCenter = SCNVector3()
     private var ballSpawnTime: TimeInterval = 0
-    
+    private var firstReleaseInterval = true
+
     private var ballPositionRelativeToHand: SCNVector3 {
         return SCNVector3(x: 0, y: Float(Ball.radius), z: 0)
     }
@@ -159,13 +160,11 @@ extension GameViewController: SCNPhysicsContactDelegate {
     }
 }
 
-var first = false  // skip first release interval
-
 extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         if time > ballSpawnTime && ballNodes.count < ballCount {
-            if first { addBallNode() }
-            first = true
+            if !firstReleaseInterval { addBallNode() }
+            firstReleaseInterval = false
             ballSpawnTime = time + TimeInterval(ballReleaseInterval)
         }
         if leftHandNode.isMoving {
