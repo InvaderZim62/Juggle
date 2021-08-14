@@ -17,7 +17,7 @@ struct Ball {
 }
 
 struct Hands {
-    static let distanceBetween: Float = 5.4
+    static let distanceBetween: Float = 5
     static let rotationCenterVerticalOffset: Float = -6.0  // from screen center
     static let rotationRate = 300.rads  // rotation rate around center of ellipse
     static let initialAngle = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
