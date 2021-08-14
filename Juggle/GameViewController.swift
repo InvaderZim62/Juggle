@@ -66,7 +66,7 @@ class GameViewController: UIViewController {
     private func addHandNodes() {
         leftHandRotationCenter = SCNVector3(x: -Hands.distanceBetween / 2, y: Hands.rotationCenterVerticalOffset, z: 0)
         leftHandNode = HandNode(isLeft: true)
-        leftHandNode.position = leftHandRotationCenter + ellipticalPosition(angle: Hands.initialAngle, tilt: ellipseTilt)
+        leftHandNode.position = leftHandRotationCenter + ellipticalPosition(angle: 180.rads - Hands.initialAngle, tilt: ellipseTilt)
         scnScene.rootNode.addChildNode(leftHandNode)
         
         rightHandRotationCenter = SCNVector3(x: Hands.distanceBetween / 2, y: Hands.rotationCenterVerticalOffset, z: 0)
@@ -84,17 +84,18 @@ class GameViewController: UIViewController {
     }
     
     private func moveHandNode(_ handNode: HandNode, deltaTime: Double) {
+        let initialAngle = handNode.isLeft ? 180.rads - Hands.initialAngle : Hands.initialAngle
         let ellipseTilt = handNode.isLeft ? ellipseTilt : -ellipseTilt
         let rotationRate = handNode.isLeft ? Hands.rotationRate : -Hands.rotationRate  // left hand ccw, right hand cw
         let rotationCenter = handNode.isLeft ? leftHandRotationCenter : rightHandRotationCenter
 
         let deltaAngle = deltaTime * rotationRate  // radians
-        let angle = Hands.initialAngle + deltaAngle  // start hand along ellipse minor-axis
+        let angle = initialAngle + deltaAngle  // start hand along ellipse minor-axis
         if abs(deltaAngle) < 360.rads {  // move hand around complete loop
             handNode.position = rotationCenter + ellipticalPosition(angle: angle, tilt: ellipseTilt)
         } else {
             handNode.isMoving = false
-            handNode.position = rotationCenter + ellipticalPosition(angle: Hands.initialAngle, tilt: ellipseTilt)  // return to start (should be there)
+            handNode.position = rotationCenter + ellipticalPosition(angle: initialAngle, tilt: ellipseTilt)  // return to start (should be there)
         }
         if abs(deltaAngle) > ballReleaseAngle {  // release ball just past negative minor axis
             handNode.ballNode.location = .inAir
@@ -139,7 +140,8 @@ class GameViewController: UIViewController {
 
 // MARK: - Extensions
 
-// detect contact between dominos, to play click sound (requires scnScene.physicsWorld.contactDelegate = self)
+// detect contact between hand and ball (requires scnScene.physicsWorld.contactDelegate = self)
+// when contact is detected, set flag to move hand in renderer, below
 extension GameViewController: SCNPhysicsContactDelegate {
     func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
         let contactMask = contact.nodeA.physicsBody!.categoryBitMask | contact.nodeB.physicsBody!.categoryBitMask
@@ -160,6 +162,8 @@ extension GameViewController: SCNPhysicsContactDelegate {
     }
 }
 
+// spawn initial balls, move hand for one complete cycle (determined by moveHandNode) when contacted
+// by ball (determined by physicsWorld), move ball with hand until released (determined by moveHandNode)
 extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         if time > ballSpawnTime && ballNodes.count < ballCount {
