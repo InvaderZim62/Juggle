@@ -18,7 +18,7 @@ class ViewController: UIViewController {
                 gvc.ballReleaseAngle = 220.rads  // angle of hand about center of ellipse at ball release, zero along ellipse major-axis, positive ccw
                 gvc.ellipseMajorAxis = 3.0
                 gvc.ellipseMinorAxis = 1.0
-                gvc.ellipseTilt = 60.rads  // rotation of ellipse major axis from screen x-axis, positive ccw
+                gvc.ellipseTilt = 60.rads  // rotation of ellipse major axis from screen x-axis, positive ccw for left ellipse (pos cw for right ellipse)
             case "5 Ball Cascade":
                 gvc.ballCount = 5
                 gvc.ballReleaseInterval = 0.68

@@ -97,7 +97,7 @@ class GameViewController: UIViewController {
             handNode.isMoving = false
             handNode.position = rotationCenter + ellipticalPosition(angle: initialAngle, tilt: ellipseTilt)  // return to start (should be there)
         }
-        if abs(deltaAngle) > ballReleaseAngle {  // release ball just past negative minor axis
+        if abs(deltaAngle) > ballReleaseAngle {
             handNode.ballNode.location = .inAir
         }
     }
@@ -148,13 +148,17 @@ extension GameViewController: SCNPhysicsContactDelegate {
         switch contactMask {
         case ContactCategory.hand | ContactCategory.ball:
             if let handNode = contact.nodeA as? HandNode, let ballNode = contact.nodeB as? BallNode {
-                handNode.isMoving = true
-                handNode.ballNode = ballNode
-                ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+                if !handNode.isMoving {
+                    handNode.isMoving = true
+                    handNode.ballNode = ballNode
+                    ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+                }
             } else if let handNode = contact.nodeB as? HandNode, let ballNode = contact.nodeA as? BallNode {
-                handNode.isMoving = true
-                handNode.ballNode = ballNode
-                ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+                if !handNode.isMoving {
+                    handNode.isMoving = true
+                    handNode.ballNode = ballNode
+                    ballNode.location = handNode.isLeft ? .leftHand : .rightHand
+                }
             }
         default:
             break
