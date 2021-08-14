@@ -50,7 +50,7 @@ class GameViewController: UIViewController {
     private var firstReleaseInterval = true
 
     private var ballPositionRelativeToHand: SCNVector3 {
-        return SCNVector3(x: 0, y: Float(Ball.radius), z: 0)
+        return SCNVector3(x: 0, y: Float(1.4 * Ball.radius), z: 0)  // keeping ball slightly above hand allows realistic release trajectory
     }
     
     // MARK: - Start of Code
