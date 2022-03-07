@@ -115,7 +115,6 @@ class GameViewController: UIViewController {
     
     private func setupView() {
         scnView = self.view as? SCNView
-        scnView.showsStatistics = true
         scnView.allowsCameraControl = true  // use standard camera controls with swiping
         scnView.showsStatistics = false
         scnView.autoenablesDefaultLighting = true
