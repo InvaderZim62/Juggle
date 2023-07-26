@@ -23,6 +23,7 @@ struct Hands {
     static let initialAngle = 90.rads  // initial angle of hand about center of ellipse, zero along ellipse major-axis, positive ccw
 }
 
+// see !100 Days | Swift | !SpriteKit Apps | Project26 for enum version using Uint32
 struct ContactCategory {  // bit masks for contact detection
     static let hand = 1 << 0
     static let ball = 1 << 1
