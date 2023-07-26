@@ -1,8 +1,6 @@
 # Juggle
 
-Simulate juggling patterns: 3 ball cascade, 5 ball cascade, and 4 ball fountain.
-
-Created using SceneKit.  This took a lot of tweeking to each one to work.
+With this app, I simulated juggling patterns using SceneKit.  This took a lot of tweeking to get each one to work.
 
 | 3 Ball Cascade | 5 Ball Cascade | 4 Ball Fountain |
 | :------------: | :------------: | :-------------: |
